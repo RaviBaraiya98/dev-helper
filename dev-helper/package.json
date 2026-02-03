@@ -1,0 +1,50 @@
+{
+  "name": "dev-helper",
+  "version": "2.1.0",
+  "description": "A beginner-friendly CLI tool that helps developers set up projects and understand errors",
+  "main": "bin/index.js",
+  "bin": {
+    "dev-helper": "./bin/index.js"
+  },
+  "scripts": {
+    "test": "node bin/index.js --help",
+    "link": "npm link",
+    "unlink": "npm unlink -g dev-helper"
+  },
+  "keywords": [
+    "cli",
+    "developer-tools",
+    "git",
+    "setup",
+    "beginner-friendly",
+    "nodejs",
+    "python",
+    "java",
+    "rust",
+    "go",
+    "docker"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "files": [
+    "bin/",
+    "commands/",
+    "detectors/",
+    "checkers/",
+    "fixes/",
+    "git/",
+    "utils/",
+    "data/"
+  ]
+}
