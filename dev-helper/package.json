@@ -1,10 +1,13 @@
 {
-  "name": "dev-helper",
-  "version": "2.2.0",
+  "name": "@ravibaraiya/dev-helper",
+  "version": "2.2.1",
   "description": "A beginner-friendly CLI tool that helps developers set up projects and understand errors (READ-ONLY, never executes project code)",
   "main": "bin/index.js",
   "bin": {
     "dev-helper": "./bin/index.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "node bin/index.js --help",
