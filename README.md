@@ -7,6 +7,6 @@ A simple CLI tool to help developers:
 ## Install
 
 ```bash
-npm install -g dev-helper
+npm install -g @ravibaraiya/dev-helper
 dev-helper setup
 dev-helper explain
