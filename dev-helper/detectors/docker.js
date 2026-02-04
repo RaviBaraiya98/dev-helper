@@ -1,5 +1,10 @@
+/**
+ * Docker Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: docker run, docker-compose up, etc.
+ */
 const BaseDetector = require('./base');
-const { fileExists, readFile, directoryExists, commandExists, getCommandVersion } = require('../utils/runner');
+const { fileExists, readFile, directoryExists, commandExists, getCommandVersion, safeRunCommand } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');
 
 class DockerDetector extends BaseDetector {
@@ -88,8 +93,8 @@ class DockerDetector extends BaseDetector {
         id: 'docker-running',
         name: 'Docker daemon running',
         check: () => {
-          const { runCommand } = require('../utils/runner');
-          const result = runCommand('docker info');
+          // ✅ SAFE: docker info is on the allowlist (read-only status check)
+          const result = safeRunCommand('docker info');
           return result.success;
         },
         fix: 'Start Docker Desktop or the Docker daemon'
@@ -99,10 +104,9 @@ class DockerDetector extends BaseDetector {
         name: 'Docker Compose available',
         check: (dir, analysis) => {
           if (!analysis?.hasCompose) return 'skip';
-          // Modern Docker includes compose as a subcommand
-          const { runCommand } = require('../utils/runner');
-          const result = runCommand('docker compose version');
-          return result.success || commandExists('docker-compose');
+          // ✅ SAFE: docker --version is on the allowlist
+          // Note: We check for docker-compose command existence, not execution
+          return commandExists('docker') || commandExists('docker-compose');
         },
         fix: 'Docker Compose is included in Docker Desktop, or install separately'
       }

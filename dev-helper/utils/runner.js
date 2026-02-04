@@ -1,17 +1,27 @@
 const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { isCommandSafe, logBlockedCommand } = require('./safety');
 
 /**
- * Run a shell command and return the result
- * @param {string} command - Command to execute
- * @param {object} options - Options
- * @returns {object} { success, stdout, stderr, code }
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                     COMMAND EXECUTION - SAFETY ENFORCED                   ║
+ * ║                                                                           ║
+ * ║  ALL command execution in dev-helper goes through this module.            ║
+ * ║  The safeRunCommand function enforces the allowlist in safety.js.         ║
+ * ║                                                                           ║
+ * ║  NEVER bypass the safety checks. NEVER execute user project code.         ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
-function runCommand(command, options = {}) {
+
+/**
+ * INTERNAL: Execute a command (used only by safeRunCommand after validation)
+ * @private - DO NOT EXPORT - DO NOT CALL DIRECTLY
+ */
+function _executeCommand(command, options = {}) {
   const {
     cwd = process.cwd(),
-    timeout = 30000,
+    timeout = 10000,  // Reduced timeout - version checks should be fast
     silent = true
   } = options;
 
@@ -35,34 +45,89 @@ function runCommand(command, options = {}) {
 }
 
 /**
- * Run a command and return just the output (legacy compatibility)
- * @param {string} command - Command to execute
- * @returns {string|null} Command output or null if failed
+ * Safely run a command after validating against the allowlist.
+ * 
+ * ⚠️  SECURITY: This function ONLY executes commands that are explicitly
+ *     on the safe allowlist in safety.js. All other commands are blocked.
+ * 
+ * @param {string} command - Command to execute (must be on allowlist)
+ * @param {object} options - Options
+ * @returns {object} { success, stdout, stderr, code }
+ */
+function safeRunCommand(command, options = {}) {
+  const safetyCheck = isCommandSafe(command);
+  
+  if (!safetyCheck.safe) {
+    // Log the blocked attempt for debugging
+    logBlockedCommand(command, safetyCheck.reason);
+    
+    // Return a failure result instead of throwing
+    // This allows graceful degradation
+    return {
+      success: false,
+      stdout: '',
+      stderr: `[SAFETY] Command blocked: ${safetyCheck.reason}`,
+      code: -1,
+      blocked: true
+    };
+  }
+
+  return _executeCommand(command, options);
+}
+
+/**
+ * @deprecated Use safeRunCommand instead
+ * This function is kept for backward compatibility but routes through safety checks.
+ */
+function runCommand(command, options = {}) {
+  // Route ALL calls through the safe execution path
+  return safeRunCommand(command, options);
+}
+
+/**
+ * @deprecated Use safeRunCommand for version checks
+ * Returns just the output for legacy compatibility
  */
 function runCommandSimple(command) {
-  const result = runCommand(command);
+  const result = safeRunCommand(command);
   return result.success ? result.stdout : (result.stderr || result.stdout || null);
 }
 
 /**
  * Check if a command exists in PATH
+ * ✅ SAFE: Only uses where/which commands which are on the allowlist
  * @param {string} cmd - Command to check
  * @returns {boolean}
  */
 function commandExists(cmd) {
+  // Validate the command name to prevent injection
+  if (!cmd || typeof cmd !== 'string' || !/^[\w-]+$/.test(cmd)) {
+    return false;
+  }
   const checkCmd = process.platform === 'win32' ? `where ${cmd}` : `which ${cmd}`;
-  const result = runCommand(checkCmd);
+  const result = safeRunCommand(checkCmd);
   return result.success && result.stdout.length > 0;
 }
 
 /**
  * Get version of a command
+ * ✅ SAFE: Only uses --version flags which are on the allowlist
  * @param {string} cmd - Command to check
  * @param {string} versionFlag - Flag to get version (default: --version)
  * @returns {string|null} Version string or null
  */
 function getCommandVersion(cmd, versionFlag = '--version') {
-  const result = runCommand(`${cmd} ${versionFlag} 2>&1`);
+  // Validate inputs to prevent injection
+  if (!cmd || typeof cmd !== 'string' || !/^[\w-]+$/.test(cmd)) {
+    return null;
+  }
+  if (!versionFlag || typeof versionFlag !== 'string' || !/^[-\w]+$/.test(versionFlag)) {
+    return null;
+  }
+  
+  // Special case for java which outputs to stderr
+  const cmdString = cmd === 'java' ? `${cmd} -version 2>&1` : `${cmd} ${versionFlag}`;
+  const result = safeRunCommand(cmdString);
   if (result.success || result.stdout) {
     return result.stdout || result.stderr;
   }
@@ -150,6 +215,7 @@ function listFiles(dir = process.cwd(), pattern = null) {
 
 /**
  * Find files by name in current directory
+ * ✅ SAFE: Uses only file system reads, no command execution
  * @param {string[]} filenames - Array of filenames to find
  * @param {string} baseDir - Base directory
  * @returns {object} Map of filename -> exists
@@ -163,10 +229,18 @@ function findFiles(filenames, baseDir = process.cwd()) {
 }
 
 module.exports = {
+  // ✅ SAFE: Validates commands against allowlist before execution
+  safeRunCommand,
+  
+  // ⚠️ DEPRECATED: Routes through safeRunCommand for safety
   runCommand,
   runCommandSimple,
+  
+  // ✅ SAFE: Uses validated version checks only
   commandExists,
   getCommandVersion,
+  
+  // ✅ SAFE: File system reads only, no execution
   fileExists,
   directoryExists,
   readJsonFile,

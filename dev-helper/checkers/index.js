@@ -1,6 +1,21 @@
 /**
  * Checker System
  * Runs checks for detected projects and returns results
+ * 
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                        SAFETY ENFORCED                                    ║
+ * ║                                                                           ║
+ * ║  All checks MUST be read-only operations:                                 ║
+ * ║    ✅ File existence checks (fileExists, directoryExists)                 ║
+ * ║    ✅ Tool version checks (commandExists, getCommandVersion)              ║
+ * ║    ✅ Configuration file parsing                                          ║
+ * ║                                                                           ║
+ * ║  Checks MUST NEVER:                                                       ║
+ * ║    ❌ Execute project code                                                ║
+ * ║    ❌ Install dependencies                                                ║
+ * ║    ❌ Run build commands                                                  ║
+ * ║    ❌ Modify any files                                                    ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 const output = require('../utils/output');

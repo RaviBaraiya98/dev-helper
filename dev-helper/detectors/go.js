@@ -1,3 +1,8 @@
+/**
+ * Go Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: go run, go build, etc.
+ */
 const BaseDetector = require('./base');
 const { fileExists, readFile, commandExists, getCommandVersion } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');

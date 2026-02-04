@@ -1,3 +1,8 @@
+/**
+ * .NET Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: dotnet run, dotnet build, etc.
+ */
 const BaseDetector = require('./base');
 const { fileExists, readFile, directoryExists, commandExists, getCommandVersion, listFiles } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');

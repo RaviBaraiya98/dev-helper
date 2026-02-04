@@ -1,5 +1,10 @@
+/**
+ * Python Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: python, pip install, poetry run, etc.
+ */
 const BaseDetector = require('./base');
-const { fileExists, readFile, directoryExists, commandExists, getCommandVersion, runCommand } = require('../utils/runner');
+const { fileExists, readFile, directoryExists, commandExists, getCommandVersion } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');
 const { isWindows, getVenvActivateCommand } = require('../utils/platform');
 

@@ -1,3 +1,8 @@
+/**
+ * PHP Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: php, composer install, etc.
+ */
 const BaseDetector = require('./base');
 const { fileExists, readJsonFile, directoryExists, commandExists, getCommandVersion } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');

@@ -2,37 +2,76 @@ const chalk = require('chalk');
 const { detectAll } = require('../detectors');
 const { runChecks, Status, summarizeResults } = require('../checkers');
 const systemChecks = require('../checkers/system');
-const { runCommand } = require('../utils/runner');
+const { safeRunCommand, commandExists, getCommandVersion } = require('../utils/runner');
 const { success, error, warning, info, header } = require('../utils/output');
+
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                     dev-helper setup - READ-ONLY ANALYZER                 ║
+ * ║                                                                           ║
+ * ║  ⚠️  CRITICAL SAFETY RULES - DO NOT VIOLATE ⚠️                            ║
+ * ║                                                                           ║
+ * ║  This command MUST NEVER:                                                 ║
+ * ║    ❌ Execute user project code (npm start, python app.py, etc.)          ║
+ * ║    ❌ Start servers or open ports                                         ║
+ * ║    ❌ Install dependencies (npm install, pip install, etc.)               ║
+ * ║    ❌ Modify any files                                                    ║
+ * ║    ❌ Run build commands (npm run build, mvn compile, etc.)               ║
+ * ║                                                                           ║
+ * ║  This command MAY ONLY:                                                   ║
+ * ║    ✅ Read files (package.json, requirements.txt, etc.)                   ║
+ * ║    ✅ Check tool versions (git --version, node --version)                 ║
+ * ║    ✅ Read git config (git config --global user.name)                     ║
+ * ║    ✅ Check if tools exist (where/which commands)                         ║
+ * ║    ✅ Inspect directory structure                                         ║
+ * ║                                                                           ║
+ * ║  All command execution goes through safeRunCommand() which enforces       ║
+ * ║  a strict allowlist. Any unsafe command is blocked automatically.         ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
 
 /**
  * dev-helper setup
  * 
  * Detects project type, checks environment/runtime, validates dependencies,
  * checks configurations, and explains any issues found with fix steps.
+ * 
+ * THIS IS A READ-ONLY OPERATION - NO CODE EXECUTION.
  */
 async function setup(options = {}) {
   console.log(chalk.cyan('\n🔍 Analyzing your development environment...\n'));
+  console.log(chalk.gray('  (Read-only analysis - no code will be executed)\n'));
 
   const allIssues = [];
   const allFixes = [];
 
   // ═══════════════════════════════════════════════════════════════════
   // STEP 1: System & Developer Tools Check
+  // ✅ SAFE: Only version checks (e.g., git --version) are executed
   // ═══════════════════════════════════════════════════════════════════
   
   header('Developer Tools');
 
+  // Define tool checks - ONLY version queries, no execution
   const toolChecks = [
     { cmd: 'git --version', name: 'Git', required: true },
     { cmd: 'node --version', name: 'Node.js', required: false },
     { cmd: 'npm --version', name: 'npm', required: false },
     { cmd: 'python --version', name: 'Python', required: false },
-    { cmd: 'java -version', name: 'Java', required: false },
+    { cmd: 'java -version 2>&1', name: 'Java', required: false },
   ];
 
   for (const tool of toolChecks) {
-    const result = await runCommand(tool.cmd);
+    // safeRunCommand validates against allowlist before executing
+    const result = await safeRunCommand(tool.cmd);
+    
+    // Check if command was blocked by safety module
+    if (result.blocked) {
+      // This should never happen for version checks, but handle gracefully
+      info(`${tool.name} check skipped (safety restriction)`);
+      continue;
+    }
+    
     if (result.success) {
       const output = result.stdout || result.stderr || '';
       const version = output.match(/[\d]+\.[\d]+\.[\d]+/)?.[0] || output.trim().split('\n')[0] || 'unknown';
@@ -48,13 +87,15 @@ async function setup(options = {}) {
 
   // ═══════════════════════════════════════════════════════════════════
   // STEP 2: Git Configuration Check
+  // ✅ SAFE: Only reads git config values, no modifications
   // ═══════════════════════════════════════════════════════════════════
   
   console.log('');
   header('Git Configuration');
 
-  const gitName = await runCommand('git config --global user.name');
-  const gitEmail = await runCommand('git config --global user.email');
+  // These commands are on the safe allowlist - read-only config queries
+  const gitName = await safeRunCommand('git config --global user.name');
+  const gitEmail = await safeRunCommand('git config --global user.email');
 
   const gitNameValue = (gitName.stdout || '').trim();
   const gitEmailValue = (gitEmail.stdout || '').trim();
@@ -75,8 +116,8 @@ async function setup(options = {}) {
     allFixes.push('git config --global user.email "you@example.com"');
   }
 
-  // Check if we're in a Git repo
-  const gitStatus = await runCommand('git status');
+  // Check if we're in a Git repo - read-only status check
+  const gitStatus = await safeRunCommand('git status');
   if (gitStatus.success) {
     success('Git repository detected');
   } else {
@@ -85,11 +126,14 @@ async function setup(options = {}) {
 
   // ═══════════════════════════════════════════════════════════════════
   // STEP 3: Project Detection & Analysis
+  // ✅ SAFE: Only reads config files, checks directory structure,
+  //    and validates tool versions. NO project code is executed.
   // ═══════════════════════════════════════════════════════════════════
   
   console.log('');
   header('Project Analysis');
 
+  // detectAll only reads files and checks directory structure - no execution
   const detectedProjects = detectAll(process.cwd());
 
   if (detectedProjects.length === 0) {
@@ -98,6 +142,7 @@ async function setup(options = {}) {
     console.log('');
   } else {
     // Run checks for each detected project
+    // ✅ SAFE: Checks only use file reads and version commands
     for (const result of detectedProjects) {
       const { detector, analysis, checks } = result;
       const dir = process.cwd();
@@ -109,10 +154,11 @@ async function setup(options = {}) {
       console.log('');
 
       // Run the detector's built-in checks
+      // ✅ SAFE: All checks use safeRunCommand or file system reads
       if (checks && checks.length > 0) {
         for (const checkDef of checks) {
           try {
-            // Execute the check function
+            // Execute the check function - checks only read files or run version commands
             const passed = checkDef.check ? checkDef.check(dir) : true;
             const checkName = checkDef.name || checkDef.id || 'Check';
             
@@ -162,11 +208,12 @@ async function setup(options = {}) {
       }
 
       // Show setup commands if available
+      // ⚠️ NOTE: These are DISPLAYED to the user, NOT executed
       if (detector.getSetupCommands && options.verbose) {
         const setupCmds = detector.getSetupCommands();
         if (setupCmds && setupCmds.length > 0) {
           console.log('');
-          console.log(chalk.gray('  Setup commands:'));
+          console.log(chalk.gray('  Suggested setup commands (run manually):'));
           setupCmds.forEach(cmd => {
             console.log(chalk.gray(`    $ ${cmd}`));
           });
@@ -177,6 +224,7 @@ async function setup(options = {}) {
 
   // ═══════════════════════════════════════════════════════════════════
   // STEP 4: Summary & Fix Instructions
+  // ✅ SAFE: Only displays information, no execution
   // ═══════════════════════════════════════════════════════════════════
   
   console.log('');
@@ -208,11 +256,14 @@ async function setup(options = {}) {
     });
 
     // Quick copy-paste section
-    console.log(chalk.yellow.bold('  ⚡ Quick Fix Commands:\n'));
+    // ⚠️ NOTE: These are DISPLAYED for the user to run manually, NOT executed
+    console.log(chalk.yellow.bold('  ⚡ Quick Fix Commands (run these manually):\n'));
     const uniqueFixes = [...new Set(allFixes.filter(f => f))];
     uniqueFixes.forEach(fix => {
       console.log(chalk.white(`    ${fix}`));
     });
+    console.log('');
+    console.log(chalk.gray('  ℹ️  dev-helper is read-only and will not run these commands for you.'));
     console.log('');
   }
 }

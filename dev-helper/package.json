@@ -1,13 +1,14 @@
 {
   "name": "dev-helper",
-  "version": "2.1.0",
-  "description": "A beginner-friendly CLI tool that helps developers set up projects and understand errors",
+  "version": "2.2.0",
+  "description": "A beginner-friendly CLI tool that helps developers set up projects and understand errors (READ-ONLY, never executes project code)",
   "main": "bin/index.js",
   "bin": {
     "dev-helper": "./bin/index.js"
   },
   "scripts": {
     "test": "node bin/index.js --help",
+    "test:safety": "node -e \"require('./utils/safety').isCommandSafe('npm start')\" && echo Safety module loaded",
     "link": "npm link",
     "unlink": "npm unlink -g dev-helper"
   },
@@ -22,7 +23,9 @@
     "java",
     "rust",
     "go",
-    "docker"
+    "docker",
+    "safe",
+    "read-only"
   ],
   "author": "",
   "license": "MIT",

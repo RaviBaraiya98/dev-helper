@@ -1,9 +1,23 @@
 /**
  * System-level checks
  * Checks for system-wide tools and configurations
+ * 
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                        SAFETY ENFORCED                                    ║
+ * ║                                                                           ║
+ * ║  This module ONLY:                                                        ║
+ * ║    ✅ Checks tool versions (git --version, node --version, etc.)          ║
+ * ║    ✅ Reads git configuration (git config --get)                          ║
+ * ║    ✅ Checks environment variables (no execution)                         ║
+ * ║                                                                           ║
+ * ║  This module NEVER:                                                       ║
+ * ║    ❌ Executes user project code                                          ║
+ * ║    ❌ Installs anything                                                   ║
+ * ║    ❌ Modifies system state                                               ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-const { commandExists, getCommandVersion, runCommand } = require('../utils/runner');
+const { commandExists, getCommandVersion, safeRunCommand } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');
 const { getPlatformInfo, isWindows, isElevated } = require('../utils/platform');
 
@@ -45,6 +59,7 @@ function checkDeveloperTools() {
 
 /**
  * Check Git configuration
+ * ✅ SAFE: Only reads git config values, no modifications
  */
 function checkGitConfig() {
   const checks = [];
@@ -54,8 +69,8 @@ function checkGitConfig() {
     return [{ name: 'Git', status: 'missing', fix: 'Install Git from https://git-scm.com' }];
   }
 
-  // Check user.name
-  const userName = runCommand('git config --global user.name');
+  // Check user.name - ✅ SAFE: read-only config query
+  const userName = safeRunCommand('git config --global user.name');
   checks.push({
     name: 'Git user.name',
     status: userName.success && userName.stdout ? 'configured' : 'missing',
@@ -63,8 +78,8 @@ function checkGitConfig() {
     fix: 'git config --global user.name "Your Name"'
   });
 
-  // Check user.email
-  const userEmail = runCommand('git config --global user.email');
+  // Check user.email - ✅ SAFE: read-only config query
+  const userEmail = safeRunCommand('git config --global user.email');
   checks.push({
     name: 'Git user.email',
     status: userEmail.success && userEmail.stdout ? 'configured' : 'missing',
@@ -72,8 +87,8 @@ function checkGitConfig() {
     fix: 'git config --global user.email "your.email@example.com"'
   });
 
-  // Check default branch
-  const defaultBranch = runCommand('git config --global init.defaultBranch');
+  // Check default branch - ✅ SAFE: read-only config query
+  const defaultBranch = safeRunCommand('git config --global init.defaultBranch');
   checks.push({
     name: 'Git default branch',
     status: defaultBranch.success && defaultBranch.stdout ? 'configured' : 'not set',

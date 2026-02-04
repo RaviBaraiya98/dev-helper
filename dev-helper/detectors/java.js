@@ -1,5 +1,10 @@
+/**
+ * Java Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: java, mvn, gradle, etc.
+ */
 const BaseDetector = require('./base');
-const { fileExists, readFile, directoryExists, commandExists, getCommandVersion, runCommand } = require('../utils/runner');
+const { fileExists, readFile, directoryExists, commandExists, getCommandVersion, safeRunCommand } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');
 
 class JavaDetector extends BaseDetector {
@@ -72,7 +77,8 @@ class JavaDetector extends BaseDetector {
         name: 'Java installed',
         check: () => commandExists('java'),
         getVersion: () => {
-          const result = runCommand('java -version 2>&1');
+          // ✅ SAFE: java -version is on the allowlist
+          const result = safeRunCommand('java -version 2>&1');
           if (result.stdout || result.stderr) {
             const output = result.stdout || result.stderr;
             const match = output.match(/version "([^"]+)"/);

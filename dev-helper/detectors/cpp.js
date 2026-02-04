@@ -1,3 +1,8 @@
+/**
+ * C/C++ Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: make, cmake build, gcc, etc.
+ */
 const BaseDetector = require('./base');
 const { fileExists, readFile, directoryExists, commandExists, getCommandVersion } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');

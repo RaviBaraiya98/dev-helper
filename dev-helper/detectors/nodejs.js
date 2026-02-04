@@ -1,3 +1,8 @@
+/**
+ * Node.js Project Detector
+ * ✅ SAFE: Uses only file reads and version checks
+ * ❌ NEVER executes: npm start, npm run, node, etc.
+ */
 const BaseDetector = require('./base');
 const { fileExists, readJsonFile, directoryExists, commandExists, getCommandVersion } = require('../utils/runner');
 const { extractVersion } = require('../utils/version');

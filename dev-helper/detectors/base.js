@@ -1,6 +1,25 @@
 /**
- * Base Detector class
- * All language/framework detectors extend this class
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                      BASE DETECTOR - SAFETY RULES                         ║
+ * ║                                                                           ║
+ * ║  All detectors MUST follow these rules:                                   ║
+ * ║                                                                           ║
+ * ║  ALLOWED:                                                                 ║
+ * ║    ✅ Read files (readFile, readJsonFile, fileExists)                     ║
+ * ║    ✅ Check directory structure (directoryExists, listFiles)              ║
+ * ║    ✅ Check tool versions (commandExists, getCommandVersion)              ║
+ * ║    ✅ Parse configuration files                                           ║
+ * ║                                                                           ║
+ * ║  FORBIDDEN:                                                               ║
+ * ║    ❌ Execute project code (npm start, python app.py, etc.)               ║
+ * ║    ❌ Run build commands (npm run build, mvn compile, etc.)               ║
+ * ║    ❌ Install dependencies                                                ║
+ * ║    ❌ Start servers or open ports                                         ║
+ * ║    ❌ Modify any files                                                    ║
+ * ║                                                                           ║
+ * ║  All command execution is routed through safeRunCommand which             ║
+ * ║  enforces a strict allowlist. Violations are automatically blocked.       ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 class BaseDetector {
   constructor() {
